@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaskuy - Pembukuan Kas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bree+Serif&display=swap" rel="stylesheet">
+    <style>
+        /* Reset margin and padding */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body styling */
+        body {
+            font-family: 'Bree Serif', serif;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px;
+        }
+
+        /* Header styling */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 36px;
+            color: #86B499;
+        }
+
+        /* Form section */
+        .form-section {
+            background-color: #D1FFEF;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            text-align: center;
+            color: #86B499;
+        }
+
+        form label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        form input,
+        form select,
+        form button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        form button {
+            background-color: #86B499;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #7a9d81;
+        }
+
+        /* Table section */
+        .table-section {
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #86B499;
+            color: white;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        /* Summary section */
+        .summary {
+            background-color: #D1FFEF;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .summary p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        /* Download button */
+        .download-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        button#downloadExcel {
+            padding: 10px 20px;
+            background-color: #86B499;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button#downloadExcel:hover {
+            background-color: #7a9d81;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Kaskuy - Pembukuan Kas</h1>
+    </header>
+
+    <main>
+        <!-- Form section -->
+        <section class="form-section">
+            <h2>Catat Pemasukan & Pengeluaran</h2>
+            <form id="transactionForm">
+                <label for="type">Jenis Transaksi:</label>
+                <select id="type" required>
+                    <option value="pemasukan">Pemasukan</option>
+                    <option value="pengeluaran">Pengeluaran</option>
+                </select>
+                
+                <label for="amount">Jumlah:</label>
+                <input type="number" id="amount" required>
+
+                <label for="description">Deskripsi:</label>
+                <input type="text" id="description" required>
+
+                <button type="submit">Tambah Transaksi</button>
+            </form>
+        </section>
+
+        <!-- Transaction Table Section -->
+        <section class="table-section">
+            <h2>Daftar Transaksi</h2>
+            <table id="transactionTable">
+                <thead>
+                    <tr>
+                        <th>Jenis</th>
+                        <th>Jumlah</th>
+                        <th>Deskripsi</th>
+                        <th>Tanggal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Transaction data will appear here -->
+                </tbody>
+            </table>
+
+            <!-- Summary Section -->
+            <section class="summary">
+                <h3>Rincian Saldo</h3>
+                <p>Total Pemasukan: <span id="totalIncome">0</span></p>
+                <p>Total Pengeluaran: <span id="totalExpense">0</span></p>
+                <p>Saldo: <span id="balance">0</span></p>
+            </section>
+        </section>
+
+        <!-- Download Button Section -->
+        <section class="download-section">
+            <button id="downloadExcel">Unduh sebagai Excel</button>
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+    <script>
+        let transactions = [];
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        // Handle form submission
+        document.getElementById('transactionForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            
+            const type = document.getElementById('type').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value;
+
+            // Update total income or expense
+            if (type === 'pemasukan') {
+                totalIncome += amount;
+            } else {
+                totalExpense += amount;
+            }
+
+            const transaction = {
+                type,
+                amount,
+                description,
+                date: new Date().toLocaleDateString()
+            };
+
+            transactions.push(transaction);
+            updateTable();
+            updateSummary();
+        });
+
+        // Update transaction table
+        function updateTable() {
+            const tableBody = document.querySelector('#transactionTable tbody');
+            tableBody.innerHTML = '';
+
+            transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${transaction.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}</td>
+                    <td>${transaction.amount}</td>
+                    <td>${transaction.description}</td>
+                    <td>${transaction.date}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Update summary (total income, total expense, balance)
+        function updateSummary() {
+            document.getElementById('totalIncome').textContent = totalIncome; document.getElementById('totalExpense').textContent = totalExpense;
+            document.getElementById('balance').textContent = totalIncome - totalExpense;
+        }
+
+        // Handle Excel file download (data from the table)
+        document.getElementById('downloadExcel').addEventListener('click', function () {
+            if (transactions.length > 0) {
+                // Convert the transactions array into a worksheet
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(transactions);
+                
+                // Append the worksheet to the workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'Transaksi');
+                // Write the file and trigger download
+                XLSX.writeFile(wb, 'pembukuan_kas.xlsx');
+            } else {
+                alert("Tidak ada transaksi untuk diunduh.");
+            }
+        });
+    </script>
+</body>
+</html>
